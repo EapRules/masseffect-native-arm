@@ -1,0 +1,42 @@
+{
+  "version": 4,
+  "name": "masseffect-portmaster.zip",
+  "items": [
+    "Mass Effect Infiltrator.sh",
+    "masseffect"
+  ],
+  "items_opt": [],
+  "attr": {
+    "title": "Mass Effect Infiltrator",
+    "porter": [
+      "EapRules"
+    ],
+    "desc": "The 2011 Mass Effect Infiltrator mobile third-person action game by IronMonkey Studios, running its original Android ARM library directly on Linux through a bionic/JNI compatibility loader.",
+    "desc_md": null,
+    "inst": "Supply your own Mass Effect Infiltrator v1.0.58 gamepad-build APK, ZIP, or extracted folder. Put it in ports/masseffect/; the donor filename does not matter and the first launch extracts and validates it automatically. Keep the port release named masseffect-portmaster.zip. Wait for PortMaster's Finished running autoinstall dialog, then reboot normally before looking for the game in Ports. The supported native-library SHA1 is ea58b733d3d267ab639431b50539542faa43f0d0. No game data is included.",
+    "inst_md": null,
+    "genres": [
+      "action",
+      "adventure"
+    ],
+    "image": {},
+    "rtr": false,
+    "exp": false,
+    "runtime": null,
+    "reqs": [
+      "analog_2"
+    ],
+    "arch": [
+      "armhf"
+    ],
+    "min_glibc": "2.29",
+    "status": {
+      "source": "https://github.com/eaprules/masseffect-portmaster",
+      "date_added": "2026-07-31"
+    },
+    "publisher": "Electronic Arts",
+    "developer": "IronMonkey Studios",
+    "released": "2011-01-25",
+    "players": "1"
+  }
+}

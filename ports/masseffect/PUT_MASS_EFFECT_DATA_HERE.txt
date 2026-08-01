@@ -1,0 +1,22 @@
+Put your own Mass Effect Infiltrator v1.0.58 (gamepad build) APK, ZIP, or
+extracted folder in this directory. The filename does not matter.
+
+Mass Effect Infiltrator PortMaster port and eapx extractor by EapRules.
+
+The port validates this exact native library before extracting anything:
+
+  lib/armeabi/libMassEffect.so
+  SHA1 ea58b733d3d267ab639431b50539542faa43f0d0
+
+The supported build is the gamepad edition, Android package
+com.ea.games.meinfiltrator_gamepad. Backups are commonly labelled:
+
+  Mass Effect Infiltrator Mobile Version 1.0.58
+  Mass Effect Infiltrator vita 1.0.58
+
+The known Vita-ready masseffect.zip is also supported. It contains the main
+campaign but omits optional Survival, Burst Rifle and ~2x UI data. README.md
+records its exact archive identity and the difference from a complete donor.
+
+Do not place the PortMaster release zip here. That zip belongs in PortMaster's
+autoinstall folder. See README.md for the complete installation instructions.
