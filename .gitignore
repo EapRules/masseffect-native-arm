@@ -1,0 +1,11 @@
+# Build artifacts. The release ZIP is published as a GitHub Release asset.
+build/
+# qemu harness crash dumps and transients.
+*.core
+harness/results/
+emulator/runtime/
+# Python / macOS.
+__pycache__/
+*.pyc
+.DS_Store
+._*

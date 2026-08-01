@@ -1,0 +1,522 @@
+{
+  "schema": 1,
+  "id": "masseffect-1.0.58",
+  "version": "2",
+  "title": "Mass Effect Infiltrator",
+  "abi_order": [
+    "armeabi"
+  ],
+  "input": {
+    "search_dirs": [
+      "gamedata",
+      "."
+    ]
+  },
+  "extract": [
+    {
+      "id": "native-library",
+      "description": "MEI v1.0.58 native library",
+      "destination": "lib/armeabi/libMassEffect.so",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "lib/armeabi/libMassEffect.so",
+          "masseffect/lib/armeabi/libMassEffect.so",
+          "data/masseffect/lib/armeabi/libMassEffect.so",
+          "NeededFiles/data/masseffect/lib/armeabi/libMassEffect.so"
+        ]
+      },
+      "validate": {
+        "size": 16952541,
+        "sha256": [
+          "deb5d808c398e327edaebc765ac1abf9feaf3ecf1bc7252de02bb9146c4fb62a"
+        ],
+        "elf_machine": "armeabi",
+        "critical_regions": {
+          "regions": [
+            {
+              "offset": "0x5828ec",
+              "size": 4
+            },
+            {
+              "offset": "0x5828f0",
+              "size": 4
+            },
+            {
+              "offset": "0x582904",
+              "size": 4
+            },
+            {
+              "offset": "0x582918",
+              "size": 4
+            },
+            {
+              "offset": "0x58292c",
+              "size": 4
+            },
+            {
+              "offset": "0x582930",
+              "size": 4
+            },
+            {
+              "offset": "0x582944",
+              "size": 4
+            },
+            {
+              "offset": "0x587194",
+              "size": 4
+            },
+            {
+              "offset": "0x58719c",
+              "size": 4
+            },
+            {
+              "offset": "0x5871a8",
+              "size": 4
+            },
+            {
+              "offset": "0x5887fc",
+              "size": 4
+            },
+            {
+              "offset": "0x588800",
+              "size": 4
+            },
+            {
+              "offset": "0x588804",
+              "size": 4
+            },
+            {
+              "offset": "0x588a68",
+              "size": 4
+            },
+            {
+              "offset": "0x588adc",
+              "size": 4
+            },
+            {
+              "offset": "0x58f8f0",
+              "size": 4
+            },
+            {
+              "offset": "0x58f8f8",
+              "size": 4
+            },
+            {
+              "offset": "0x58f8fc",
+              "size": 4
+            },
+            {
+              "offset": "0x58f904",
+              "size": 4
+            },
+            {
+              "offset": "0x58f908",
+              "size": 4
+            },
+            {
+              "offset": "0x58f90c",
+              "size": 4
+            },
+            {
+              "offset": "0x58f960",
+              "size": 4
+            },
+            {
+              "offset": "0x58f968",
+              "size": 4
+            },
+            {
+              "offset": "0x58f96c",
+              "size": 4
+            },
+            {
+              "offset": "0x58f974",
+              "size": 4
+            },
+            {
+              "offset": "0x58f97c",
+              "size": 4
+            },
+            {
+              "offset": "0x58f980",
+              "size": 4
+            },
+            {
+              "offset": "0x591acc",
+              "size": 4
+            },
+            {
+              "offset": "0x591ad0",
+              "size": 4
+            },
+            {
+              "offset": "0x22bf6c",
+              "size": 4
+            },
+            {
+              "offset": "0x22bbe8",
+              "size": 4
+            },
+            {
+              "offset": "0x22b214",
+              "size": 4
+            },
+            {
+              "offset": "0x1c3d7c",
+              "size": 4
+            },
+            {
+              "offset": "0x7b6ee8",
+              "size": 4
+            },
+            {
+              "offset": "0x6d021c",
+              "size": 4
+            },
+            {
+              "offset": "0x622ba8",
+              "size": 4
+            },
+            {
+              "offset": "0x626c34",
+              "size": 4
+            },
+            {
+              "offset": "0x627c58",
+              "size": 4
+            },
+            {
+              "offset": "0x40e31c",
+              "size": 4
+            },
+            {
+              "offset": "0x27c244",
+              "size": 4
+            },
+            {
+              "offset": "0x27e96c",
+              "size": 4
+            },
+            {
+              "offset": "0x30d6f4",
+              "size": 64
+            },
+            {
+              "offset": "0x23fffc",
+              "size": 64
+            }
+          ],
+          "sha256": "14ff0a82e3c073dacb3578f8b1025045e470d9c846cf827db6a7ba110899f8e5"
+        }
+      }
+    },
+    {
+      "id": "assets-apk",
+      "description": "game assets at the Android package root",
+      "required": false,
+      "destination": "assets",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "assets/*"
+        ],
+        "strip_prefix": "assets/"
+      }
+    },
+    {
+      "id": "assets-masseffect",
+      "description": "game assets under a masseffect directory",
+      "required": false,
+      "destination": "assets",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "masseffect/assets/*"
+        ],
+        "strip_prefix": "masseffect/assets/"
+      }
+    },
+    {
+      "id": "assets-data-masseffect",
+      "description": "game assets under data/masseffect",
+      "required": false,
+      "destination": "assets",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "data/masseffect/assets/*"
+        ],
+        "strip_prefix": "data/masseffect/assets/"
+      }
+    },
+    {
+      "id": "assets-neededfiles",
+      "description": "game assets under NeededFiles/data/masseffect",
+      "required": false,
+      "destination": "assets",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "NeededFiles/data/masseffect/assets/*"
+        ],
+        "strip_prefix": "NeededFiles/data/masseffect/assets/"
+      }
+    },
+    {
+      "id": "assets-aux-published",
+      "description": "auxiliary data folder: published/*",
+      "required": false,
+      "destination": "assets/published",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "published/*"
+        ],
+        "strip_prefix": "published/"
+      }
+    },
+    {
+      "id": "assets-android-published",
+      "description": "auxiliary data folder: Android/data/com.ea.games.meinfiltrator_gamepad/published/*",
+      "required": false,
+      "destination": "assets/published",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "Android/data/com.ea.games.meinfiltrator_gamepad/published/*"
+        ],
+        "strip_prefix": "Android/data/com.ea.games.meinfiltrator_gamepad/published/"
+      }
+    },
+    {
+      "id": "assets-pkg-published",
+      "description": "auxiliary data folder: com.ea.games.meinfiltrator_gamepad/published/* (OBB/cache zip as distributed)",
+      "required": false,
+      "destination": "assets/published",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "com.ea.games.meinfiltrator_gamepad/published/*"
+        ],
+        "strip_prefix": "com.ea.games.meinfiltrator_gamepad/published/"
+      }
+    }
+  ],
+  "validate": [
+    {
+      "path": "lib/armeabi/libMassEffect.so",
+      "size": 16952541,
+      "sha256": [
+        "deb5d808c398e327edaebc765ac1abf9feaf3ecf1bc7252de02bb9146c4fb62a"
+      ],
+      "elf_machine": "armeabi",
+      "critical_regions": {
+        "regions": [
+          {
+            "offset": "0x5828ec",
+            "size": 4
+          },
+          {
+            "offset": "0x5828f0",
+            "size": 4
+          },
+          {
+            "offset": "0x582904",
+            "size": 4
+          },
+          {
+            "offset": "0x582918",
+            "size": 4
+          },
+          {
+            "offset": "0x58292c",
+            "size": 4
+          },
+          {
+            "offset": "0x582930",
+            "size": 4
+          },
+          {
+            "offset": "0x582944",
+            "size": 4
+          },
+          {
+            "offset": "0x587194",
+            "size": 4
+          },
+          {
+            "offset": "0x58719c",
+            "size": 4
+          },
+          {
+            "offset": "0x5871a8",
+            "size": 4
+          },
+          {
+            "offset": "0x5887fc",
+            "size": 4
+          },
+          {
+            "offset": "0x588800",
+            "size": 4
+          },
+          {
+            "offset": "0x588804",
+            "size": 4
+          },
+          {
+            "offset": "0x588a68",
+            "size": 4
+          },
+          {
+            "offset": "0x588adc",
+            "size": 4
+          },
+          {
+            "offset": "0x58f8f0",
+            "size": 4
+          },
+          {
+            "offset": "0x58f8f8",
+            "size": 4
+          },
+          {
+            "offset": "0x58f8fc",
+            "size": 4
+          },
+          {
+            "offset": "0x58f904",
+            "size": 4
+          },
+          {
+            "offset": "0x58f908",
+            "size": 4
+          },
+          {
+            "offset": "0x58f90c",
+            "size": 4
+          },
+          {
+            "offset": "0x58f960",
+            "size": 4
+          },
+          {
+            "offset": "0x58f968",
+            "size": 4
+          },
+          {
+            "offset": "0x58f96c",
+            "size": 4
+          },
+          {
+            "offset": "0x58f974",
+            "size": 4
+          },
+          {
+            "offset": "0x58f97c",
+            "size": 4
+          },
+          {
+            "offset": "0x58f980",
+            "size": 4
+          },
+          {
+            "offset": "0x591acc",
+            "size": 4
+          },
+          {
+            "offset": "0x591ad0",
+            "size": 4
+          },
+          {
+            "offset": "0x22bf6c",
+            "size": 4
+          },
+          {
+            "offset": "0x22bbe8",
+            "size": 4
+          },
+          {
+            "offset": "0x22b214",
+            "size": 4
+          },
+          {
+            "offset": "0x1c3d7c",
+            "size": 4
+          },
+          {
+            "offset": "0x7b6ee8",
+            "size": 4
+          },
+          {
+            "offset": "0x6d021c",
+            "size": 4
+          },
+          {
+            "offset": "0x622ba8",
+            "size": 4
+          },
+          {
+            "offset": "0x626c34",
+            "size": 4
+          },
+          {
+            "offset": "0x627c58",
+            "size": 4
+          },
+          {
+            "offset": "0x40e31c",
+            "size": 4
+          },
+          {
+            "offset": "0x27c244",
+            "size": 4
+          },
+          {
+            "offset": "0x27e96c",
+            "size": 4
+          },
+          {
+            "offset": "0x30d6f4",
+            "size": 64
+          },
+          {
+            "offset": "0x23fffc",
+            "size": 64
+          }
+        ],
+        "sha256": "14ff0a82e3c073dacb3578f8b1025045e470d9c846cf827db6a7ba110899f8e5"
+      }
+    },
+    {
+      "path": "assets/EAMCore.ini",
+      "size": 3119,
+      "sha256": "d5b49184291c9a56928481380e19e8ead7f2df7b031201ffad52d8f374e05335"
+    },
+    {
+      "path": "assets/published",
+      "min_files": 1000,
+      "min_bytes": 254000000
+    },
+    {
+      "path": "assets/published/data/level_index.prefabs.sb",
+      "size": 6101
+    },
+    {
+      "path": "assets/published/data/weapons.prefabs.sb",
+      "size": 28029
+    }
+  ],
+  "commit": [
+    "assets",
+    "lib"
+  ],
+  "marker": ".eapx-masseffect-data.json",
+  "log": "eapx.log",
+  "placeholder": "PUT_MASS_EFFECT_DATA_HERE.txt",
+  "space": {
+    "safety_bytes": 67108864
+  },
+  "requires_eapx": ">=0.3.0"
+}

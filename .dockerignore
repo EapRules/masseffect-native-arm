@@ -1,0 +1,9 @@
+# The image build only needs the source tree and third_party/ (the SDL tarball
+# the Dockerfile COPYs). Everything below is either regenerated inside the
+# container or pure debugging spill, and shipping it as build context is what
+# made `docker build` send ~8 GB and stall. Keep third_party/ - do NOT ignore it.
+*.core
+build/
+harness/results/
+.git/
+*.log
