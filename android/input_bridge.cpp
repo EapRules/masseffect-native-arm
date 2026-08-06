@@ -1178,6 +1178,37 @@ static void update_sticks(void)
     g_right_active = right_now;
 }
 
+/*
+ * The binding of one SDL button in a controller's mapping string, e.g. the
+ * "b1" of "a:b1". Copied into a caller-owned buffer because the whole point is
+ * to print two of them on one line.
+ *
+ * This is reported, never acted on. See the face-layout block in
+ * android_input_init() for why it cannot decide the layout by itself.
+ */
+static const char *mapping_binding(const char *mapping, const char *key,
+                                   char *out, size_t size)
+{
+    snprintf(out, size, "?");
+    if (!mapping)
+        return out;
+
+    size_t key_len = strlen(key);
+    for (const char *p = mapping; (p = strstr(p, key)) != NULL; p += key_len) {
+        /* Only at the start of a field, so "leftx:" never matches "x:". */
+        if (p != mapping && p[-1] != ',')
+            continue;
+        const char *value = p + key_len;
+        size_t len = strcspn(value, ",");
+        if (len >= size)
+            len = size - 1;
+        memcpy(out, value, len);
+        out[len] = '\0';
+        return out;
+    }
+    return out;
+}
+
 static void open_controller(int index)
 {
     if (!SDL_IsGameController(index))
@@ -1190,8 +1221,15 @@ static void open_controller(int index)
     for (SDL_GameController *&slot : g_controllers) {
         if (!slot) {
             slot = SDL_GameControllerOpen(index);
-            if (slot)
-                trace("controller: %s", SDL_GameControllerName(slot));
+            if (slot) {
+                char *mapping = SDL_GameControllerMapping(slot);
+                char a[8], b[8];
+                trace("controller: %s (mapping a:%s b:%s)",
+                      SDL_GameControllerName(slot),
+                      mapping_binding(mapping, "a:", a, sizeof(a)),
+                      mapping_binding(mapping, "b:", b, sizeof(b)));
+                SDL_free(mapping);
+            }
             return;
         }
     }
@@ -1309,15 +1347,49 @@ void android_input_init(so_module *mod, JNIEnv *env, int width, int height)
     g_autopilot = auto_env && *auto_env && strcmp(auto_env, "0") != 0;
 
     /*
-     * SDL names face buttons by position. R36S-class handhelds are lettered
-     * Nintendo-style: their physical A (right) arrives as SDL B, while their
-     * physical B (bottom) arrives as SDL A. This is measured on the same
-     * device by the working sibling ports.
+     * Which SDL button the physical A is - and why it is not detectable.
+     *
+     * SDL names face buttons by position: SDL_CONTROLLER_BUTTON_A is the
+     * bottom one, whatever the plastic says. R36S-class handhelds are lettered
+     * Nintendo-style, A on the right, so on ArkOS their physical A arrives as
+     * SDL B. That is measured on the device by the working sibling ports and
+     * it is the default here.
+     *
+     * It is not universal, and issue #1 is what that costs: on a dArkOSRE
+     * clone the physical A arrived as SDL button 0, so this default sent
+     * Android key 97 - which the main menu reads as its exit key - and the
+     * game asked to quit instead of to start.
+     *
+     * The obvious fix would be to ask SDL. It cannot answer:
+     *
+     *   - SDL 2.0.x has no button-label API at all. The label functions
+     *     (SDL_GetGamepadButtonLabel) are SDL3; 2.0.22 has only
+     *     SDL_GameControllerGetType, which returns UNKNOWN for every one of
+     *     these handhelds.
+     *   - the mapping string knows which raw button is bound to "a:", but that
+     *     is the CFW maintainer's choice, not a fact about the hardware. The
+     *     GO-Super Gamepad from the issue report has GUID
+     *     190000004b4800000011000000010000 in both ArkOS's gamecontrollerdb
+     *     (a:b1,b:b0) and upstream SDL_GameControllerDB (a:b0,b:b1) - byte
+     *     identical device, opposite mapping. ROCKNIX and REG-Linux disagree
+     *     the same way about r36s_Gamepad, ROCKNIX disagrees with itself
+     *     between retrogame_joypad and r36s_Gamepad, and muOS ships "retro"
+     *     and "modern" variants of one GUID for the user to pick between.
+     *
+     * So the mapping is logged (see open_controller) and never obeyed:
+     * guessing from it would silently invert the buttons for everyone the
+     * default currently serves, to fix the devices it does not. The layout
+     * stays a switch the player can throw, and the trace below is what tells
+     * them the switch exists - printed unconditionally, because someone whose
+     * A button quits the game has no reason to suspect a face-layout setting.
      */
     const char *layout = getenv("MASSEFFECT_FACE_LAYOUT");
     if (layout && strcmp(layout, "xbox") == 0) {
         g_accept_button = SDL_CONTROLLER_BUTTON_A;
         g_back_button = SDL_CONTROLLER_BUTTON_B;
+    } else if (layout && *layout && strcmp(layout, "nintendo") != 0) {
+        warning("input: MASSEFFECT_FACE_LAYOUT=%s is not a layout; "
+                "use 'nintendo' (default) or 'xbox'\n", layout);
     }
 
     int available = SDL_NumJoysticks();
@@ -1338,6 +1410,24 @@ void android_input_init(so_module *mod, JNIEnv *env, int width, int height)
           available, opened,
           g_accept_button == SDL_CONTROLLER_BUTTON_B ? "Nintendo" : "Xbox",
           g_autopilot ? " autopilot=on" : "");
+
+    /*
+     * The layout, spelled out in the terms the player can check against their
+     * own hands, and always - tracing off is not a reason to hide the one line
+     * that explains a game which exits when you press start.
+     */
+    bool nintendo = g_accept_button == SDL_CONTROLLER_BUTTON_B;
+    fprintf(stderr,
+            "face layout: %s - accept is the %s face button, back is the %s "
+            "one.\n"
+            "             If your A button acts as back or exits the game from "
+            "the main menu,\n"
+            "             set MASSEFFECT_FACE_LAYOUT=%s in the port's launcher "
+            "and relaunch.\n",
+            nintendo ? "nintendo (default)" : "xbox (MASSEFFECT_FACE_LAYOUT)",
+            nintendo ? "right" : "bottom",
+            nintendo ? "bottom" : "right",
+            nintendo ? "xbox" : "nintendo");
 
     cursor_show();
     trace("input: menus use d-pad cursor + physical A tap; L3/R3 toggle cursor; "

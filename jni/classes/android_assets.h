@@ -36,6 +36,7 @@ public:
 
     static jobject GetInstance(JNIEnv *env, jclass clazz);
     static jobject getAssets(JNIEnv *env, jobject obj);
+    static void    finish(JNIEnv *env, jobject obj);
 };
 
 /* android/content/res/AssetManager - registered so the object getAssets()

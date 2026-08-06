@@ -62,7 +62,14 @@ fi
 
 export LD_LIBRARY_PATH="$GAMEDIR/libs.armhf${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+# Which face button means "accept". SDL names them by position, not by the
+# letter printed on the plastic, and the CFWs disagree about which position the
+# A button occupies on the same hardware - so this cannot be detected, only
+# chosen. Default nintendo: A is the right-hand button, as on the R36S.
+# Uncomment the line below if your A button acts as back or exits the game from
+# the main menu. The loader prints the layout in use on every launch.
 export MASSEFFECT_FACE_LAYOUT="${MASSEFFECT_FACE_LAYOUT:-nintendo}"
+# export MASSEFFECT_FACE_LAYOUT=xbox
 # The menu navigates on the d-pad directly, so the painted cursor is off by
 # default (it was the only thing drawing behind the engine - the Mali trail).
 # Set MASSEFFECT_NO_CURSOR=0 to bring it back if a menu ever needs the pointer.

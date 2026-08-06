@@ -53,6 +53,7 @@
 #include "classes/ea_EASPHandler.h"
 #include "classes/media_AudioTrack.h"
 
+#include "app_exit.h"
 #include "crash.h"
 #include "cursor_draw.h"
 #include "emulator_control.h"
@@ -760,6 +761,16 @@ int main(int argc, char **argv)
                 goto done;
         }
 
+        /*
+         * The game's own exit request, checked next to the event drain rather
+         * than trusted to it: android_app_request_exit() pushes SDL_QUIT, but
+         * a full queue drops it, and a dropped exit is the freeze all over
+         * again. Read before the draw, so the frame after finish() is never
+         * issued against a world the engine has already released.
+         */
+        if (android_app_exit_requested())
+            goto done;
+
         if (!emulator_control_tick(frames))
             goto done;
         android_input_tick();
@@ -854,7 +865,12 @@ done:
           android_gl_draw_calls());
     trace("autopilot keys=%ld scenes=%ld",
           android_input_autopilot_keys(), android_input_autopilot_scenes());
-    trace("run finished: %ld frames", frames);
+    /* Why the loop stopped. "run finished" alone reads the same for a frame
+     * limit, a window close and the game's own Exit, and only the last of
+     * those means the player is done. */
+    trace("run finished: %ld frames (%s)", frames,
+          android_app_exit_requested() ? "the game asked to exit"
+                                       : "the loader stopped driving it");
 
     /*
      * The engine started threads of its own and they are still running.

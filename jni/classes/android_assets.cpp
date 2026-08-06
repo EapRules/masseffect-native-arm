@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "platform.h"
+#include "app_exit.h"
 #include "jni.h"
 #include "jni_internals.h"
 #include "trace.h"
@@ -117,11 +118,43 @@ jobject MainActivity::getAssets(JNIEnv *env, jobject obj)
     return (jobject)assets;
 }
 
+/*
+ * Activity.finish() - how this game ends.
+ *
+ * The engine's exit path runs to completion before it gets here: the main menu
+ * has already released the world and disabled the orientation, accelerometer
+ * and keep-awake handlers by the time it fetches the activity and calls this.
+ * Nothing after this call belongs to the game, so the only thing left is to
+ * stop driving it.
+ *
+ * Left unregistered until this build, the call fell through to the "does not
+ * have method" warning, the engine kept its side of the teardown, and the
+ * loader carried on calling NativeOnDrawFrame over a torn-down scene forever -
+ * a frozen picture on a process that still ticked frames (GitHub issue #1).
+ * That path is reachable without meaning to exit at all: on a device whose
+ * mapping puts the physical A on SDL_CONTROLLER_BUTTON_A, our Nintendo-lettered
+ * default sends Android key 97, which the main menu reads as its exit key.
+ * Implementing finish() does not make that mapping right - see
+ * MASSEFFECT_FACE_LAYOUT in android/input_bridge.cpp - it makes the wrong
+ * mapping cost a clean quit instead of a hang the player cannot leave.
+ *
+ * The exit is requested, not performed: see android/app_exit.h.
+ */
+void MainActivity::finish(JNIEnv *env, jobject obj)
+{
+    (void)env; (void)obj;
+
+    trace("MainActivity.finish() - the game asked to exit");
+    android_app_request_exit("MainActivity.finish()");
+}
+
 const ManagedMethod MainActivityMethods[] = {
     ManagedMethod::RegisterStatic<&MainActivity::GetInstance>(
         MainActivity::clazz, "GetInstance", "()Lcom/ea/blast/MainActivity;"),
     ManagedMethod::Register<&MainActivity::getAssets>(
         MainActivity::clazz, "getAssets", "()Landroid/content/res/AssetManager;"),
+    ManagedMethod::Register<&MainActivity::finish>(
+        MainActivity::clazz, "finish", "()V"),
     {NULL},
 };
 
