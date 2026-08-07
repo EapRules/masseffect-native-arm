@@ -688,29 +688,56 @@ static bool app_singleton_ready(void)
  * a stream of zero deltas, with the shake coming from the odd frame that
  * happened to differ.
  *
- * The fix is to hand the engine the ramp it is looking for. A held axis is sent
- * as a three-frame cycle of 0.94, 0.97 and 1.00 of its value, so two frames out
- * of three carry a delta with the right sign and the third is ignored by every
- * band. The multipliers are proportional on purpose: they keep the sample
- * inside the same speed band as the real deflection, so the camera moves at the
- * speed the player asked for rather than a scaled-down one.
+ * The fix is to hand the engine the ramp it is looking for. A held axis leaves
+ * multiplied by a sawtooth that climbs from 0.94 to 1.00 of its value and drops
+ * back: every dispatch on the climb carries a delta with the right sign, and
+ * only the one that lands on the drop is ignored by every band. The multipliers
+ * are proportional on purpose: they keep the sample inside the same speed band
+ * as the real deflection, so the camera moves at the speed the player asked for
+ * rather than a scaled-down one.
+ *
+ * The sawtooth is a function of wall time, not of a per-dispatch counter, and
+ * that is the whole point of its current shape. It used to be three fixed
+ * phases advanced once per dispatch - 0.94, 0.97, 1.00 - which ignores one
+ * dispatch in three no matter how fast the host runs, a 33% duty stutter. It
+ * was tolerable on the R36S and reported as "really jerky camera movement on
+ * the y-axis" on an RG34xxSP (issue #2), whose frame cadence beats differently
+ * against a fixed 3-count. Driving the phase off SDL_GetTicks() makes the cycle
+ * last the same number of milliseconds on every device, and turns the stall
+ * rate into frame_time / kSwipeRampPeriodMs - it shrinks as the host gets
+ * faster instead of staying pinned at a third.
+ *
+ * That is also why the period is 400 ms and not the ~100 ms that looks natural.
+ * A 100 ms cycle at 30 fps is three dispatches per cycle, which is exactly the
+ * old 3-phase stutter with a clock in front of it. 400 ms ignores one dispatch
+ * in eleven at 25 fps, one in thirteen at 30, one in thirty at 60 - and it
+ * bounds the other artefact, below, to a 2.5 Hz wobble.
+ *
+ * The floor stays at 0.94, the value that shipped, because lowering it is not
+ * free: a deflection sitting just above one of the band boundaries (|axis| 0.1,
+ * 0.4, 0.9) spends part of the cycle scaled into the band below, so the camera
+ * speed alternates. A 0.94 floor only does that to deflections within 6.4% of a
+ * boundary, a 0.91 floor to 9.9% of one. Nothing about the fix needs a deeper
+ * ramp: the engine tests the *sign* of the delta, not its size, and at 400 ms
+ * even a 1 ms gap between dispatches moves the multiplier by 0.015% of the
+ * value, far above float resolution.
  *
  * Only the right stick is dithered. MASSEFFECT_CAMERA_NO_SWIPE=1 sends the raw
  * value instead, which is the behaviour the first hardware test had.
  */
-static const float kSwipeRamp[] = {0.94f, 0.97f, 1.0f};
+static const float kSwipeRampFloor = 0.94f;
+static const Uint32 kSwipeRampPeriodMs = 400;
 static bool g_camera_no_swipe = false;
 
-static float swipe_ramp(float value, unsigned int *phase)
+static float swipe_ramp(float value)
 {
-    if (value == 0.0f || g_camera_no_swipe) {
-        *phase = 0;
+    if (value == 0.0f || g_camera_no_swipe)
         return value;
-    }
-    float scaled = value * kSwipeRamp[*phase % (sizeof(kSwipeRamp) /
-                                                sizeof(kSwipeRamp[0]))];
-    (*phase)++;
-    return scaled;
+
+    Uint32 phase = SDL_GetTicks() % kSwipeRampPeriodMs;
+    float scale = kSwipeRampFloor + (1.0f - kSwipeRampFloor) *
+                                    ((float)phase / (float)kSwipeRampPeriodMs);
+    return value * scale;
 }
 
 /*
@@ -751,9 +778,8 @@ static void dispatch_motion(void)
      * the engine are ramped. Dithering before this point would let a sample dip
      * to zero and fake a stop the player never asked for.
      */
-    static unsigned int rx_phase = 0, ry_phase = 0;
-    float swipe_rx = swipe_ramp(rx, &rx_phase);
-    float swipe_ry = swipe_ramp(ry, &ry_phase);
+    float swipe_rx = swipe_ramp(rx);
+    float swipe_ry = swipe_ramp(ry);
 
     if (left_centred && left_was_centred && (prev_lx != 0.0f || prev_ly != 0.0f))
         send_motion(lx, ly, swipe_rx, swipe_ry, MOTION_LEFT_STOP);

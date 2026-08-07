@@ -53,13 +53,124 @@
  * exactly as it would on a real armeabi-v7a device.
  */
 #include <stdint.h>
+#include <stdlib.h>
 #include <time.h>
 #include <string.h>
 #include <sys/time.h>
 
 #include "so_util.h"
 #include "thunk_gen.h"
+#include "time_scale.h"
 #include "trace.h"
+
+/*
+ * Development-only clock acceleration. The contract, the reasoning and the list
+ * of what is deliberately left unscaled are in time_scale.h; this is only where
+ * it happens to live, because these are the functions it acts on.
+ */
+
+/*
+ * The multiplier, parsed once. Capped at 64 because past that the offset grows
+ * further between two frames than any engine's interpolation expects, and
+ * physics stepped off the clock starts tunnelling through geometry - which
+ * reads as a port bug and is not one.
+ */
+double port_time_scale(void)
+{
+    static const double scale = [] {
+        const char *value = getenv("MASSEFFECT_TIME_SCALE");
+        if (!value || !*value)
+            return 1.0;
+
+        char *end = NULL;
+        const double parsed = strtod(value, &end);
+        if (end == value || (end && *end != '\0') || !(parsed >= 1.0) ||
+            parsed > 64.0) {
+            warning("MASSEFFECT_TIME_SCALE=%s is not a scale between 1 and 64; "
+                    "ignoring it.\n", value);
+            return 1.0;
+        }
+        if (parsed != 1.0)
+            warning("time scale %.2fx - development emulator only. The guest's "
+                    "monotonic clock and gettimeofday run fast; CLOCK_REALTIME, "
+                    "time() and localtime() do not.\n", parsed);
+        return parsed;
+    }();
+    return scale;
+}
+
+int64_t port_time_scale_offset_ns(void)
+{
+    const double scale = port_time_scale();
+    if (scale == 1.0)
+        return 0;   /* the whole feature, off, before any clock is read */
+
+    /* Anchored on the first call, which is the earliest moment the offset is
+     * observable by anyone. Function-local static init is thread-safe, and it
+     * needs to be: the render thread and the audio thread do arrive together. */
+    static const struct timespec origin = [] {
+        struct timespec value = {0, 0};
+        clock_gettime(CLOCK_MONOTONIC, &value);
+        return value;
+    }();
+
+    struct timespec now = {0, 0};
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    const int64_t elapsed = (int64_t)(now.tv_sec - origin.tv_sec) * 1000000000LL
+                          + (int64_t)(now.tv_nsec - origin.tv_nsec);
+    if (elapsed <= 0)
+        return 0;
+    return (int64_t)((double)elapsed * (scale - 1.0));
+}
+
+static void shift_timespec(struct timespec *value, int64_t delta_ns)
+{
+    if (!value || delta_ns == 0)
+        return;
+
+    int64_t total = (int64_t)value->tv_nsec + delta_ns;
+    value->tv_sec += (time_t)(total / 1000000000LL);
+    total %= 1000000000LL;
+    if (total < 0) {
+        total += 1000000000LL;
+        value->tv_sec -= 1;
+    }
+    value->tv_nsec = (long)total;
+}
+
+void port_time_scale_forward(struct timespec *value)
+{
+    shift_timespec(value, port_time_scale_offset_ns());
+}
+
+/*
+ * The offset read here is the one at the moment of the call, not the one in
+ * force when the guest computed the deadline. It is very slightly smaller, so
+ * the wait can end a hair early - which every caller of a timed wait already
+ * handles, because spurious wakeups exist.
+ */
+void port_time_scale_reverse(struct timespec *value)
+{
+    shift_timespec(value, -port_time_scale_offset_ns());
+}
+
+/*
+ * Which clock ids measure elapsed time. CLOCK_REALTIME is a date, and the two
+ * CPU-time clocks are not wall time at all - scaling either would be a lie
+ * about something nobody asked to go faster.
+ */
+static bool clock_measures_elapsed_time(int clk_id)
+{
+    switch (clk_id) {
+    case CLOCK_MONOTONIC:
+    case CLOCK_MONOTONIC_RAW:
+    case CLOCK_MONOTONIC_COARSE:
+    case CLOCK_BOOTTIME:
+        return true;
+    default:
+        return false;
+    }
+}
 
 extern "C" {
 
@@ -86,6 +197,8 @@ int bionic_clock_gettime(int clk_id, struct bionic_timespec *ts)
     struct timespec host;
     int rc = clock_gettime(clk_id, &host);
     if (rc == 0 && ts) {
+        if (clock_measures_elapsed_time(clk_id))
+            port_time_scale_forward(&host);
         ts->tv_sec  = (int32_t)host.tv_sec;
         ts->tv_nsec = (int32_t)host.tv_nsec;
     }
@@ -103,8 +216,13 @@ int bionic_gettimeofday(struct bionic_timeval *tv, struct timezone *tz)
     struct timeval host;
     int rc = gettimeofday(tv ? &host : NULL, tz);
     if (rc == 0 && tv) {
-        tv->tv_sec  = (int32_t)host.tv_sec;
-        tv->tv_usec = (int32_t)host.tv_usec;
+        /* Scaled, unlike the other realtime paths here: see time_scale.h. */
+        struct timespec paced;
+        paced.tv_sec  = host.tv_sec;
+        paced.tv_nsec = (long)host.tv_usec * 1000;
+        port_time_scale_forward(&paced);
+        tv->tv_sec  = (int32_t)paced.tv_sec;
+        tv->tv_usec = (int32_t)(paced.tv_nsec / 1000);
     }
     return rc;
 }
@@ -117,6 +235,16 @@ int bionic_nanosleep(const struct bionic_timespec *req, struct bionic_timespec *
 
     host_req.tv_sec  = req->tv_sec;
     host_req.tv_nsec = req->tv_nsec;
+
+    /* A sleep is a duration, not an instant, so it divides rather than shifts:
+     * the guest asked to be woken after N of *its* nanoseconds. */
+    const double scale = port_time_scale();
+    if (scale > 1.0) {
+        const int64_t total = (int64_t)((double)((int64_t)host_req.tv_sec * 1000000000LL
+                                                 + host_req.tv_nsec) / scale);
+        host_req.tv_sec  = (time_t)(total / 1000000000LL);
+        host_req.tv_nsec = (long)(total % 1000000000LL);
+    }
 
     int rc = nanosleep(&host_req, &host_rem);
     if (rem) {
