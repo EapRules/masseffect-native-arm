@@ -126,5 +126,8 @@ packed_sha="$(unzip -p "$OUT" masseffect/masseffect | shasum -a 256 | cut -d' ' 
 }
 
 echo "$OUT"
+# Single source: src/port_version.h. The binary answers --version with the same
+# string, but it is armhf and the packaging host is not, so read the header.
+echo "port version: $(sed -n 's/^#define MASSEFFECT_PORT_VERSION "\(.*\)"$/\1/p' src/port_version.h)"
 echo "binary sha256: $built_sha"
 du -h "$OUT"
